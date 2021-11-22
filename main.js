@@ -167,8 +167,9 @@ var server = http.createServer(function (req, res) {
     // console.log(sku, type);
 });
 
-server.listen(8080);
-console.log("Server running at http://localhost:8080/");
+const PORT = process.env.PORT || 8080;
+server.listen(PORT);
+console.log(`Server running on port ${PORT}`);
 
 /**
  * Round a number to the specified number of decimal places
