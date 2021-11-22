@@ -1,0 +1,14 @@
+{
+  "name": "robotevents-frontend",
+  "version": "1.0.0",
+  "description": "Simple frontend for the RobotEvents API",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "John Holbrook",
+  "license": "ISC",
+  "dependencies": {
+    "robotevents": "^2.0.0"
+  }
+}
