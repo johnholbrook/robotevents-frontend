@@ -147,7 +147,7 @@ var server = http.createServer(function (req, res) {
     }
 
     // get the rankings
-    if (["rank", "rankings"].includes(type)) {
+    else if (["rank", "rankings"].includes(type)) {
         get_rankings(sku, 5).then(r => {
             res.writeHead(200, {'Content-Type': 'application/json'});
             res.end(JSON.stringify(r));
