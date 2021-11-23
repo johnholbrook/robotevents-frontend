@@ -106,7 +106,7 @@ async function get_rankings_text(sku, num_teams){
         let result = `Top ${num_teams} ranked teams for ${rankings.event.name}:`;
         if (["VRC", "VEXU"].includes(rankings.event.program)){
             rankings.rankings.forEach((e, i) => {
-                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (${e["Avg. WP"]}/${e["Avg. AP"]}/${e["Avg. SP"]}, ${e["W-L-T"]})`;
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (Avg. ${e["Avg. WP"]} WP / ${e["Avg. AP"]} AP / ${e["Avg. SP"]} SP, ${e["W-L-T"]})`;
             });
         }
         else if (rankings.event.program == "VIQC"){
@@ -211,7 +211,7 @@ async function get_skills_text(sku, num_teams){
         let result = `Top ${num_teams} skills ranked teams for ${skills.event.name}:`;
         if (["VRC", "VEXU", "VIQC"].includes(skills.event.program)){
             skills.skills.forEach((e, i) => {
-                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driver} driving/${e["Prog."]} prog.)`;
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driver} driving / ${e["Prog."]} prog.)`;
             });
         }
         else if (skills.event.program == "RADC"){
