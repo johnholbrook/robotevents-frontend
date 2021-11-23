@@ -90,6 +90,43 @@ async function get_rankings(sku, num_teams){
 }
 
 /**
+ * Get the top n (qualification) rankings for a given event as text
+ * @param {String} sku SKU of the event
+ * @param {Number} num_teams Number of teams to return (top n)
+ * @returns object with text description of rank info
+ */
+async function get_rankings_text(sku, num_teams){
+    let rankings = await get_rankings(sku, num_teams);
+    if (rankings.error){
+        return {
+            text: rankings.error
+        }
+    }
+    else{
+        let result = `Top ${num_teams} ranked teams for ${rankings.event.name}:`;
+        if (["VRC", "VEXU"].includes(rankings.event.program)){
+            rankings.rankings.forEach((e, i) => {
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (${e["Avg. WP"]}/${e["Avg. AP"]}/${e["Avg. SP"]}, ${e["W-L-T"]})`;
+            });
+        }
+        else if (rankings.event.program == "VIQC"){
+            rankings.rankings.forEach((e, i) => {
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (Avg. ${e["Avg. Score"]} pts from ${e.Played} matches)`
+            });
+        }
+        else if (rankings.event.program == "RADC"){
+            rankings.rankings.forEach((e, i) => {
+                result += `${i==0?"":" |"} ${e.Rank} ${e.Team} (Avg. ${e["Avg. WP"]} WP, ${e["W-L-T"]})`
+            });
+        }
+        result += ` | Full results: https://robotevents.com/${rankings.event.sku}.html#results`
+        return {
+            text: result
+        }
+    }
+}
+
+/**
  * Get the top n skills rankings for a given event
  * @param {String} sku SKU of the event
  * @param {*} num_teams Number of teams to return (top n)
@@ -143,7 +180,6 @@ async function get_skills(sku, num_teams){
                 "Driving Attempts": prog.attempts
             });
         });
-         result;
     }
     else{
         return {
@@ -157,10 +193,44 @@ async function get_skills(sku, num_teams){
     }
 }
 
+/**
+ * Get the top n skills rankings for a given event as text
+ * @param {String} sku SKU of the event
+ * @param {*} num_teams Number of teams to return (top n)
+ * @returns object with text desctiption of skills rank info
+ */
+async function get_skills_text(sku, num_teams){
+    let skills = await get_skills(sku, num_teams);
+
+    if (skills.error){
+        return {
+            text: rankings.error
+        }
+    }
+    else{
+        let result = `Top ${num_teams} skills ranked teams for ${skills.event.name}:`;
+        if (["VRC", "VEXU", "VIQC"].includes(skills.event.program)){
+            skills.skills.forEach((e, i) => {
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driver} driving/${e["Prog."]} prog.)`;
+            });
+        }
+        else if (skills.event.program == "RADC"){
+            skills.skills.forEach((e, i) => {
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e["# Attempts"]} attempts)`;
+            });
+        }
+        result += ` | Full results: https://robotevents.com/${skills.event.sku}.html#results`
+        return {
+            text: result
+        }
+    }
+}
+
 var server = http.createServer(function (req, res) {
     let split = req.url.split("/");
     let sku = split[1];
     let type = split[2];
+    let text = split[3];
     if (sku == undefined || type == undefined) {
         // return a 404
         res.writeHead(404, {'Content-Type': 'text/plain'});
@@ -169,16 +239,32 @@ var server = http.createServer(function (req, res) {
 
     // get the rankings
     else if (["rank", "rankings"].includes(type)) {
-        get_rankings(sku, 5).then(r => {
-            res.writeHead(200, {'Content-Type': 'application/json'});
-            res.end(JSON.stringify(r));
-        });
+        if (text == "text"){
+            get_rankings_text(sku, 5).then(e => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(e));
+            });
+        }
+        else{
+            get_rankings(sku, 5).then(r => {
+                res.writeHead(200, {'Content-Type': 'application/json'});
+                res.end(JSON.stringify(r));
+            });
+        }
     }
     else if (type == "skills"){
-        get_skills(sku, 5).then(r => {
-            res.writeHead(200, {'Content-Type': 'application/json'});
-            res.end(JSON.stringify(r));
-        });
+        if (text == "text"){
+            get_skills_text(sku, 5).then(e => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(e));
+            });
+        }
+        else{
+            get_skills(sku, 5).then(r => {
+                res.writeHead(200, {'Content-Type': 'application/json'});
+                res.end(JSON.stringify(r));
+            });
+        }
     }
     else{
         res.writeHead(404, {'Content-Type': 'text/plain'});
