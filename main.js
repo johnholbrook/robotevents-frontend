@@ -208,10 +208,10 @@ async function get_skills_text(sku, num_teams){
         }
     }
     else{
-        let result = `Top ${num_teams} skills ranked teams for ${skills.event.name}:`;
+        let result = `Top ${num_teams} skills rankings for ${skills.event.name}:`;
         if (["VRC", "VEXU", "VIQC"].includes(skills.event.program)){
             skills.skills.forEach((e, i) => {
-                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driver} driving / ${e["Prog."]} prog.)`;
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driving} driving / ${e["Prog."]} prog.)`;
             });
         }
         else if (skills.event.program == "RADC"){
