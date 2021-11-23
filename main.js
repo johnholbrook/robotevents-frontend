@@ -23,10 +23,18 @@ re.authentication.setBearer(re_key);
  * @returns Array with rank info
  */
 async function get_rankings(sku, num_teams){
-    let event, rankings_map, top_n;
+    console.log("Getting rankings for " + sku);
+
+    let top_n, program, event_info;
     try{
-        event = (await re.events.search({sku: sku}))[0];
-        rankings_map = (await event.rankings()).contents;
+        let event = (await re.events.search({sku: sku}))[0];
+        program = event.program.code;
+        event_info = {
+            sku: sku,
+            name: event.name,
+            program: program
+        }
+        let rankings_map = (await event.rankings()).contents;
         top_n = Array.from(rankings_map, ([_k, v]) => v) //convert map to array
                .filter(i => i.rank <= num_teams) //filter to get just the desired number of teams
                .sort((a,b) => a.rank - b.rank); //sort by rank  
@@ -36,10 +44,11 @@ async function get_rankings(sku, num_teams){
             error: "Event not found"
         }
     }
+    console.log(event_info);
 
-    let program = event.program.code;
+    let rank_info;
     if (["VRC", "VEXU"].includes(program)){
-        return top_n.map(e => {
+        rank_info = top_n.map(e => {
             return {
                 Rank: e.rank,
                 Team: e.team.name,
@@ -51,7 +60,7 @@ async function get_rankings(sku, num_teams){
         });
     }
     else if (program == "VIQC"){
-        return top_n.map(e => {
+        rank_info = top_n.map(e => {
             return {
                 Rank: e.rank,
                 Team: e.team.name,
@@ -61,7 +70,7 @@ async function get_rankings(sku, num_teams){
         });
     }
     else if (program == "RADC"){
-        return top_n.map(e => {
+        rank_info = top_n.map(e => {
             return {
                 Rank: e.rank,
                 Team: e.team.name,
@@ -76,6 +85,12 @@ async function get_rankings(sku, num_teams){
             error: "Program not supported"
         }
     }
+
+    console.log(event_info);
+    return {
+        event: event_info,
+        rankings: rank_info
+    }
 }
 
 /**
@@ -85,10 +100,15 @@ async function get_rankings(sku, num_teams){
  * @returns Array with skills rank info
  */
 async function get_skills(sku, num_teams){
-    let top_n_driver, top_n_prog, program;
+    let top_n_driver, top_n_prog, program, event_info;
     try{
         let event = (await re.events.search({sku: sku}))[0];
         program = event.program.code;
+        event_info = {
+            sku: sku,
+            name: event.name,
+            program: program
+        }
         let skills_map = (await event.skills()).contents;
         let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
         top_n_prog = skills.filter(i => (i.rank <= num_teams && i.type == "programming"))
@@ -102,8 +122,9 @@ async function get_skills(sku, num_teams){
         }
     }
     
+    let skills_info;
     if (program == "RADC"){
-        return top_n_prog.map(e => {
+        skills_info = top_n_prog.map(e => {
             return {
                 Rank: e.rank,
                 Team: e.team.name,
@@ -113,10 +134,10 @@ async function get_skills(sku, num_teams){
         });
     }
     else if (["VRC", "VEXU", "VIQC"].includes(program)){ // skills info is the same for VIQC/VRC/VEXU
-        result = [];
+        skills_info = [];
         top_n_prog.forEach((prog, i) => {
             let driver = top_n_driver[i];
-            result.push({
+            skills_info.push({
                 Rank: prog.rank,
                 Team: prog.team.name,
                 "Score": prog.score + driver.score,
@@ -126,16 +147,23 @@ async function get_skills(sku, num_teams){
                 "Driving Attempts": prog.attempts
             });
         });
-        return result;
+         result;
     }
     else{
         return {
             error: "Program not supported"
         }
     }
+
+    return {
+        event: event_info,
+        skills: skills_info
+    }
 }
 
 var server = http.createServer(function (req, res) {
+    console.log(req.url);
+
     let split = req.url.split("/");
     let sku = split[1];
     let type = split[2];
