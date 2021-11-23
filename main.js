@@ -2,8 +2,7 @@ const re = require("robotevents");
 var http = require('http');
 
 // authenticate with the RE API
-// const re_key = require("./re_key.json").re_key;
-const re_key = process.env.RE_API_KEY;
+const re_key = process.env.RE_API_KEY || require("./re_key.json").re_key;
 re.authentication.setBearer(re_key);
 
 // let test_sku = "RE-VRC-21-5710";
