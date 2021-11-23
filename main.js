@@ -23,8 +23,6 @@ re.authentication.setBearer(re_key);
  * @returns Array with rank info
  */
 async function get_rankings(sku, num_teams){
-    console.log("Getting rankings for " + sku);
-
     let top_n, program, event_info;
     try{
         let event = (await re.events.search({sku: sku}))[0];
@@ -44,7 +42,6 @@ async function get_rankings(sku, num_teams){
             error: "Event not found"
         }
     }
-    console.log(event_info);
 
     let rank_info;
     if (["VRC", "VEXU"].includes(program)){
@@ -86,7 +83,6 @@ async function get_rankings(sku, num_teams){
         }
     }
 
-    console.log(event_info);
     return {
         event: event_info,
         rankings: rank_info
@@ -162,8 +158,6 @@ async function get_skills(sku, num_teams){
 }
 
 var server = http.createServer(function (req, res) {
-    console.log(req.url);
-
     let split = req.url.split("/");
     let sku = split[1];
     let type = split[2];
