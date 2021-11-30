@@ -103,23 +103,23 @@ async function get_rankings_text(sku, num_teams){
         }
     }
     else{
-        let result = `Top ${num_teams} ranked teams for ${rankings.event.name}:`;
+        let result = `Top ${num_teams} ranked teams for ${rankings.event.name}: `;
         if (["VRC", "VEXU"].includes(rankings.event.program)){
             rankings.rankings.forEach((e, i) => {
                 // result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (Avg. ${e["Avg. WP"]} WP / ${e["Avg. AP"]} AP / ${e["Avg. SP"]} SP, ${e["W-L-T"]})`;
-                result += `${e.Rank}. ${e.Team}`;
+                result += `${e.Rank}. ${e.Team} `;
             });
         }
         else if (rankings.event.program == "VIQC"){
             rankings.rankings.forEach((e, i) => {
                 // result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (Avg. ${e["Avg. Score"]} pts from ${e.Played} matches)`
-                result += `${e.Rank}. ${e.Team}`;
+                result += `${e.Rank}. ${e.Team} `;
             });
         }
         else if (rankings.event.program == "RADC"){
             rankings.rankings.forEach((e, i) => {
                 // result += `${i==0?"":" |"} ${e.Rank} ${e.Team} (Avg. ${e["Avg. WP"]} WP, ${e["W-L-T"]})`
-                result += `${e.Rank}. ${e.Team}`;
+                result += `${e.Rank}. ${e.Team} `;
             });
         }
         result += ` | Full results: https://robotevents.com/${rankings.event.sku}.html#results`
@@ -215,13 +215,13 @@ async function get_skills_text(sku, num_teams){
         if (["VRC", "VEXU", "VIQC"].includes(skills.event.program)){
             skills.skills.forEach((e, i) => {
                 // result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e.Driving} driving / ${e["Prog."]} prog.)`;
-                result += `${i==0?"":" |"} ${e.rank}. ${e.team} (${e.Score} pts.)`;
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (${e.Score} pts.)`;
             });
         }
         else if (skills.event.program == "RADC"){
             skills.skills.forEach((e, i) => {
                 // result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} - ${e.Score} pts. (${e["# Attempts"]} attempts)`;
-                result += `${i==0?"":" |"} ${e.rank}. ${e.team} (${e.Score} pts.)`;
+                result += `${i==0?"":" |"} ${e.Rank}. ${e.Team} (${e.Score} pts.) `;
             });
         }
         result += ` | Full results: https://robotevents.com/${skills.event.sku}.html#results`
