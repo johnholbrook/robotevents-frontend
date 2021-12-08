@@ -2,7 +2,7 @@ const re = require("robotevents");
 var http = require('http');
 
 // authenticate with the RE API
-const re_key = process.env.RE_API_KEY || require("./re_key.json").re_key;
+const re_key = process.env.RE_API_KEY || require("./config.json").re_key;
 re.authentication.setBearer(re_key);
 
 // let test_sku = "RE-VRC-21-5710";
@@ -279,7 +279,7 @@ var server = http.createServer(function (req, res) {
     // console.log(sku, type);
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || require("./config.json").port;
 server.listen(PORT);
 console.log(`Server running on port ${PORT}`);
 
