@@ -6,7 +6,7 @@ const re_key = process.env.RE_API_KEY || require("./config.json").re_key;
 re.authentication.setBearer(re_key);
 
 // async function main(){
-//     let tmp = await get_viqc_team_stats("253A");
+//     let tmp = await get_radc_team_stats("1234A");
 //     console.log(tmp);
 // }
 // main();
@@ -31,6 +31,8 @@ async function get_viqc_team_stats(team_num){
         program: re.programs.get("VIQC")
     }))[0];
 
+    if (team == undefined) return {error: "Team not found"};
+
     // get rankings (to calculate some stats)
     let rankings_map = (await team.rankings({season: re.seasons.current("VIQC")})).contents;
     let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
@@ -50,7 +52,9 @@ async function get_viqc_team_stats(team_num){
     });
 
     // calculate overall average score
-    let avg_score = round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0);
+    let avg_score = avg_scores.length > 0 ? round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0) : "N/A";
+
+    if (avg_scores.length == 0) high_score = "N/A"
 
     // // get skills
     // let skills_map = (await team.skills({
@@ -81,6 +85,8 @@ async function get_radc_team_stats(team_num){
         program: re.programs.get("RADC")
     }))[0];
 
+    if (team == undefined) return {error: "Team not found"};
+
     let rankings_map = (await team.rankings({season: re.seasons.current("RADC")})).contents;
 
     let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
@@ -101,7 +107,9 @@ async function get_radc_team_stats(team_num){
     });
 
     // calculate overall average score
-    let avg_score = round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0);
+    let avg_score = avg_scores.length > 0 ? round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0) : "N/A";
+
+    if (avg_scores.length == 0) high_score = "N/A"
 
     // get skills
     // let skills_map = (await team.skills({
@@ -337,7 +345,6 @@ async function get_skills_text(sku, num_teams){
 var server = http.createServer(function (req, res) {
     let split = req.url.split("/");
 
-    console.log(split)
     let endpoint = split[1];
 
     if (endpoint == "team"){
