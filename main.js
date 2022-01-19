@@ -5,16 +5,119 @@ var http = require('http');
 const re_key = process.env.RE_API_KEY || require("./config.json").re_key;
 re.authentication.setBearer(re_key);
 
-// let test_sku = "RE-VRC-21-5710";
-// let test_sku = "RE-VIQC-21-6338";
-// let test_sku = "RE-RADC-21-4266";
-// let test_sku = "not-an-sku"
-
 // async function main(){
-//     let skills = await get_skills(test_sku, 5);
-//     console.log(skills);
+//     let tmp = await get_viqc_team_stats("253A");
+//     console.log(tmp);
 // }
 // main();
+
+/**
+ * Get stats for a VEXU team
+ * @param {String} team_num - Team number (e.g. "SQL")
+ */
+async function get_vexu_team_stats(team_num){
+    return {
+        error: "Team stats for VEXU are not yet supported."
+    }
+}
+
+/**
+ * Get stats for a VIQC team
+ * @param {String} team_num - Team number (e.g. "1234A")
+ */
+async function get_viqc_team_stats(team_num){
+    let team = (await re.teams.search({
+        number: team_num,
+        program: re.programs.get("VIQC")
+    }))[0];
+
+    // get rankings (to calculate some stats)
+    let rankings_map = (await team.rankings({season: re.seasons.current("VIQC")})).contents;
+    let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
+
+    let high_score = 0;
+    let avg_scores = [];
+
+    // for each event...
+    rankings.forEach(r => {
+        // update high score
+        if (r.high_score > high_score) high_score = r.high_score;
+
+        // update avg score array (for IQ, "ties" == total matches)
+        [...Array(r.ties).keys()].forEach(_i => {
+            avg_scores.push(r.average_points);
+        });
+    });
+
+    // calculate overall average score
+    let avg_score = round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0);
+
+    // // get skills
+    // let skills_map = (await team.skills({
+    //     season: re.seasons.current("VIQC"),
+    //     type: "driver"
+    // })).contents;
+    // let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
+
+    // // return skills;
+
+    // let highest_driver = Math.max(skills.filter(s => s.type=="driver").map(s => s.score));
+    // // let highest_prog = Math.max(skills.filter(s => s.type=="programming").map(s => s.score));
+
+    return {
+        high_score: high_score,
+        avg_score: avg_score,
+        // max_d_skills: highest_driver
+    }
+}
+
+/**
+ * Get stats for a RADC team
+ * @param {String} team_num - Team number (e.g. "1234A")
+ */
+async function get_radc_team_stats(team_num){
+    let team = (await re.teams.search({
+        number: team_num,
+        program: re.programs.get("RADC")
+    }))[0];
+
+    let rankings_map = (await team.rankings({season: re.seasons.current("RADC")})).contents;
+
+    let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
+
+    let high_score = 0;
+    let avg_scores = [];
+
+    // for each event...
+    rankings.forEach(r => {
+        // update high score
+        if (r.high_score > high_score) high_score = r.high_score;
+
+        // update avg score array
+        let this_event_matches = r.wins + r.losses + r.ties;
+        [...Array(this_event_matches).keys()].forEach(_i => {
+            avg_scores.push(r.average_points);
+        });
+    });
+
+    // calculate overall average score
+    let avg_score = round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0);
+
+    // get skills
+    // let skills_map = (await team.skills({
+    //     season: re.seasons.current("RADC"),
+    //     type: "programming"
+    // })).contents;
+    // let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
+    // let max_skills = Math.max(skills.map(s => s.score));
+
+    return {
+        high_score: high_score,
+        avg_score: avg_score,
+        // max_skills: max_skills
+    };
+
+}
 
 /**
  * Get the top n (qualification) rankings for a given event
@@ -233,18 +336,41 @@ async function get_skills_text(sku, num_teams){
 
 var server = http.createServer(function (req, res) {
     let split = req.url.split("/");
-    let sku = split[1];
-    let type = split[2];
-    let text = split[3];
-    if (sku == undefined || type == undefined) {
-        // return a 404
-        res.writeHead(404, {'Content-Type': 'text/plain'});
-        res.end("404 Not Found");
-    }
 
-    // get the rankings
-    else if (["rank", "rankings"].includes(type)) {
-        if (text == "text"){
+    console.log(split)
+    let endpoint = split[1];
+
+    if (endpoint == "team"){
+        let program = split[2];
+        let team = split[3];
+        if (program == "VIQC"){
+            get_viqc_team_stats(team).then(r => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(r));
+            });
+        }
+        else if (program == "RADC"){
+            get_radc_team_stats(team).then(r => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(r));
+            });
+        }
+        else if (program == "VEXU"){
+            get_vexu_team_stats(team).then(r => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(r));
+            });
+        }
+        else{
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.end(JSON.stringify({
+                error: "Program not supported."
+            }));
+        }
+    }
+    else if (["rank", "rankings"].includes(endpoint)){
+        let sku = split[2];
+        if (split[3] == "text"){
             get_rankings_text(sku, 5).then(e => {
                 res.writeHead(200, {'Content-Type': 'text/plain'});
                 res.end(JSON.stringify(e));
@@ -257,8 +383,9 @@ var server = http.createServer(function (req, res) {
             });
         }
     }
-    else if (type == "skills"){
-        if (text == "text"){
+    else if (endpoint == "skills"){
+        let sku = split[2];
+        if (split[3] == "text"){
             get_skills_text(sku, 5).then(e => {
                 res.writeHead(200, {'Content-Type': 'text/plain'});
                 res.end(JSON.stringify(e));
@@ -272,11 +399,10 @@ var server = http.createServer(function (req, res) {
         }
     }
     else{
+        // return a 404
         res.writeHead(404, {'Content-Type': 'text/plain'});
         res.end("404 Not Found");
     }
-
-    // console.log(sku, type);
 });
 
 const PORT = process.env.PORT || require("./config.json").port;
