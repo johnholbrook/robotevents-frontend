@@ -348,7 +348,7 @@ var server = http.createServer(function (req, res) {
     let endpoint = split[1];
 
     if (endpoint == "team"){
-        let program = split[2];
+        let program = split[2].toUpperCase();
         let team = split[3];
         if (program == "VIQC"){
             get_viqc_team_stats(team).then(r => {
