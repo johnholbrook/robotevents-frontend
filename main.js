@@ -6,10 +6,91 @@ const re_key = process.env.RE_API_KEY || require("./config.json").re_key;
 re.authentication.setBearer(re_key);
 
 // async function main(){
-//     let tmp = await get_radc_team_stats("1234A");
+//     let tmp = await get_vrc_team_stats("27183R");
 //     console.log(tmp);
 // }
 // main();
+
+/**
+ * Determine whether a team won, lost, or tied a particular match
+ * @param {Object} match - match info returned from RE API
+ * @param {String} team - team number (e.g. "8768A")
+ */
+function get_match_result(match, team){
+    let red = match.alliances.find(a => a.color=="red");
+    let blue = match.alliances.find(a => a.color=="blue");
+    
+    let team_alliance = red.teams.find(t => t.team.name==team) ? "red" : "blue";
+
+    if (red.score > blue.score){// red won
+        return team_alliance == "red" ? "win" : "loss";
+    }
+    else if (blue.score > red.score){ // blue won
+        return team_alliance == "blue" ? "win" : "loss";
+    }
+    else{// tie
+        return "tie"
+    }
+}
+
+/**
+ * Get stats for a VRC team
+ * @param {String} team_num - Team number (e.g. "8768A")
+ */
+async function get_vrc_team_stats(team_num){
+    // get team
+    let team = (await re.teams.search({
+        number: team_num,
+        program: re.programs.get("VRC")
+    }))[0];
+    if (team == undefined) return {error: "Team not found"};
+
+    // get rankings
+    let rankings_map = (await team.rankings({season: re.seasons.current("VRC")})).contents;
+    let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
+
+    // calculate some stats based on the rankings
+    let awp_count = 0;
+    let qual_matches = 0;
+    let total_ap = 0;
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+
+    rankings.forEach(r => {
+        qual_matches += r.wins + r.losses + r.ties;
+        awp_count += r.wp - ( (2*r.wins) + r.ties);
+        total_ap += r.ap;
+
+        wins += r.wins;
+        losses += r.losses;
+        ties += r.ties;
+    });
+
+    // also get elimination matches, and add those to the W-L-T stats
+    // disabled for now because the matches API is way too slow
+    // let matches_map = (await team.matches({
+    //     round: [3,4,5,6],
+    //     season: re.seasons.current("VRC")
+    // })).contents;
+    // let elim_matches = Array.from(matches_map, ([_k, v]) => v); //convert map to array
+    
+    // elim_matches.forEach(m => {
+    //     let result = get_match_result(m, team_num);
+    //     if (result == "win") wins += 1;
+    //     else if (result == "loss") losses += 1;
+    //     else ties += 1;
+    // });
+    
+    // return matches;
+
+    return {
+        "awp_rate": `${round((awp_count/qual_matches)*100, 0)}%`,
+        "avg_ap": round(total_ap/qual_matches, 1),
+        "record": `${wins}-${losses}-${ties}`
+    }
+
+}
 
 /**
  * Get stats for a VEXU team
@@ -361,6 +442,12 @@ var server = http.createServer(function (req, res) {
         let team = split[3];
         if (program == "VIQC"){
             get_viqc_team_stats(team).then(r => {
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.end(JSON.stringify(r));
+            });
+        }
+        else if (program == "VRC"){
+            get_vrc_team_stats(team).then(r => {
                 res.writeHead(200, {'Content-Type': 'text/plain'});
                 res.end(JSON.stringify(r));
             });
