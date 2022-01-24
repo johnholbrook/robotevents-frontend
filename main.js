@@ -56,22 +56,22 @@ async function get_viqc_team_stats(team_num){
 
     if (avg_scores.length == 0) high_score = "N/A"
 
-    // // get skills
-    // let skills_map = (await team.skills({
-    //     season: re.seasons.current("VIQC"),
-    //     type: "driver"
-    // })).contents;
-    // let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
+    // get skills
+    let skills_map = (await team.skills({
+        season: re.seasons.current("VIQC"),
+        type: "driver"
+    })).contents;
+    let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
 
-    // // return skills;
+    // return skills;
 
-    // let highest_driver = Math.max(skills.filter(s => s.type=="driver").map(s => s.score));
+    let highest_driver = Math.max(skills.filter(s => s.type=="driver").map(s => s.score));
     // // let highest_prog = Math.max(skills.filter(s => s.type=="programming").map(s => s.score));
 
     return {
         high_score: high_score,
         avg_score: avg_score,
-        // max_d_skills: highest_driver
+        max_d_skills: highest_driver ? highest_driver : "N/A"
     }
 }
 
@@ -93,11 +93,19 @@ async function get_radc_team_stats(team_num){
 
     let high_score = 0;
     let avg_scores = [];
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
 
     // for each event...
     rankings.forEach(r => {
         // update high score
         if (r.high_score > high_score) high_score = r.high_score;
+
+        // update W-L-T
+        wins += r.wins;
+        losses += r.losses;
+        ties += r.ties;
 
         // update avg score array
         let this_event_matches = r.wins + r.losses + r.ties;
@@ -111,7 +119,7 @@ async function get_radc_team_stats(team_num){
 
     if (avg_scores.length == 0) high_score = "N/A"
 
-    // get skills
+    // // get skills
     // let skills_map = (await team.skills({
     //     season: re.seasons.current("RADC"),
     //     type: "programming"
@@ -122,6 +130,7 @@ async function get_radc_team_stats(team_num){
     return {
         high_score: high_score,
         avg_score: avg_score,
+        record: `${wins}-${losses}-${ties}`
         // max_skills: max_skills
     };
 
