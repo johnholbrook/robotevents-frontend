@@ -17,6 +17,7 @@ re.authentication.setBearer(re_key);
  * @param {String} team - team number (e.g. "8768A")
  */
 function get_match_result(match, team){
+    team = team.toUpperCase();
     let red = match.alliances.find(a => a.color=="red");
     let blue = match.alliances.find(a => a.color=="blue");
     
@@ -212,16 +213,36 @@ async function get_radc_team_stats(team_num){
 
     // calculate overall average score
     let avg_score = avg_scores.length > 0 ? round(avg_scores.reduce((a,c) => a+c) / avg_scores.length, 0) : "N/A";
-
     if (avg_scores.length == 0) high_score = "N/A"
 
-    // // get skills
-    // let skills_map = (await team.skills({
-    //     season: re.seasons.current("RADC"),
-    //     type: "programming"
-    // })).contents;
-    // let skills = Array.from(skills_map, ([_k, v]) => v); //convert map to array
-    // let max_skills = Math.max(skills.map(s => s.score));
+    // also get elimination matches, and add those to the W-L-T stats    
+    let events = rankings.map(r => {
+        return {
+            event_id: r.event.id,
+            div_id: r.division.id
+        }
+    });
+
+    // for each event...
+    await asyncForEach(events, async e => {
+        // get the elimination matches from this event
+        let event = (await re.events.search({
+            id: e.event_id
+        }))[0];
+        let matches_map = (await event.matches(e.div_id, {
+            round: [3,4,5,6],
+            team: team.id
+        })).contents;
+        let matches = Array.from(matches_map, ([_k, v]) => v); //convert map to array
+
+        // for each match...
+        matches.forEach(m => {
+            let result = get_match_result(m, team_num);
+            if (result == "win") wins += 1;
+            else if (result == "loss") losses += 1;
+            else if (result == "tie") ties += 1;
+        });
+    });
 
     return {
         high_score: high_score,
