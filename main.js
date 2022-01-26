@@ -21,15 +21,19 @@ function get_match_result(match, team){
     let blue = match.alliances.find(a => a.color=="blue");
     
     let team_alliance = red.teams.find(t => t.team.name==team) ? "red" : "blue";
-
     if (red.score > blue.score){// red won
         return team_alliance == "red" ? "win" : "loss";
     }
     else if (blue.score > red.score){ // blue won
         return team_alliance == "blue" ? "win" : "loss";
     }
-    else{// tie
-        return "tie"
+    else{
+        if (red.score == 0 && blue.score == 0){
+            // 0-0 matches are technically possible (probably if both alliances get a DQ in elims),
+            // but any 0-0 matches are very likely to have just not been played yet
+            return "unscored"
+        }
+        else return "tie"
     }
 }
 
@@ -58,38 +62,49 @@ async function get_vrc_team_stats(team_num){
     let ties = 0;
 
     rankings.forEach(r => {
+        // update AWP, AP, W-L-T
         qual_matches += r.wins + r.losses + r.ties;
         awp_count += r.wp - ( (2*r.wins) + r.ties);
         total_ap += r.ap;
-
         wins += r.wins;
         losses += r.losses;
         ties += r.ties;
     });
 
-    // also get elimination matches, and add those to the W-L-T stats
-    // disabled for now because the matches API is way too slow
-    // let matches_map = (await team.matches({
-    //     round: [3,4,5,6],
-    //     season: re.seasons.current("VRC")
-    // })).contents;
-    // let elim_matches = Array.from(matches_map, ([_k, v]) => v); //convert map to array
-    
-    // elim_matches.forEach(m => {
-    //     let result = get_match_result(m, team_num);
-    //     if (result == "win") wins += 1;
-    //     else if (result == "loss") losses += 1;
-    //     else ties += 1;
-    // });
-    
-    // return matches;
+    // also get elimination matches, and add those to the W-L-T stats    
+    let events = rankings.map(r => {
+        return {
+            event_id: r.event.id,
+            div_id: r.division.id
+        }
+    });
+
+    // for each event...
+    await asyncForEach(events, async e => {
+        // get the elimination matches from this event
+        let event = (await re.events.search({
+            id: e.event_id
+        }))[0];
+        let matches_map = (await event.matches(e.div_id, {
+            round: [3,4,5,6],
+            team: team.id
+        })).contents;
+        let matches = Array.from(matches_map, ([_k, v]) => v); //convert map to array
+
+        // for each match...
+        matches.forEach(m => {
+            let result = get_match_result(m, team_num);
+            if (result == "win") wins += 1;
+            else if (result == "loss") losses += 1;
+            else if (result == "tie") ties += 1;
+        });
+    });
 
     return {
-        "awp_rate": `${round((awp_count/qual_matches)*100, 0)}%`,
-        "avg_ap": round(total_ap/qual_matches, 1),
+        "awp_rate": `${qual_matches>0 ? round((awp_count/qual_matches)*100, 0) : 0}%`,
+        "avg_ap": qual_matches>0 ? round(total_ap/qual_matches, 1) : 0,
         "record": `${wins}-${losses}-${ties}`
     }
-
 }
 
 /**
@@ -520,4 +535,10 @@ console.log(`Server running on port ${PORT}`);
  */
  function round(num, decimals) {
     return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
 }
