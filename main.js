@@ -113,8 +113,68 @@ async function get_vrc_team_stats(team_num){
  * @param {String} team_num - Team number (e.g. "SQL")
  */
 async function get_vexu_team_stats(team_num){
+    // get team
+    let team = (await re.teams.search({
+        number: team_num,
+        program: re.programs.get("VEXU")
+    }))[0];
+    if (team == undefined) return {error: "Team not found"};
+
+    // get rankings
+    let rankings_map = (await team.rankings({season: re.seasons.current("VEXU")})).contents;
+    let rankings = Array.from(rankings_map, ([_k, v]) => v); //convert map to array
+
+    // calculate some stats based on the rankings
+    let awp_count = 0;
+    let qual_matches = 0;
+    let total_ap = 0;
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+
+    rankings.forEach(r => {
+        // update AWP, AP, W-L-T
+        qual_matches += r.wins + r.losses + r.ties;
+        awp_count += r.wp - ( (2*r.wins) + r.ties);
+        total_ap += r.ap;
+        wins += r.wins;
+        losses += r.losses;
+        ties += r.ties;
+    });
+
+    // also get elimination matches, and add those to the W-L-T stats    
+    let events = rankings.map(r => {
+        return {
+            event_id: r.event.id,
+            div_id: r.division.id
+        }
+    });
+
+    // for each event...
+    await asyncForEach(events, async e => {
+        // get the elimination matches from this event
+        let event = (await re.events.search({
+            id: e.event_id
+        }))[0];
+        let matches_map = (await event.matches(e.div_id, {
+            round: [3,4,5,6],
+            team: team.id
+        })).contents;
+        let matches = Array.from(matches_map, ([_k, v]) => v); //convert map to array
+
+        // for each match...
+        matches.forEach(m => {
+            let result = get_match_result(m, team_num);
+            if (result == "win") wins += 1;
+            else if (result == "loss") losses += 1;
+            else if (result == "tie") ties += 1;
+        });
+    });
+
     return {
-        error: "Team stats for VEXU are not yet supported."
+        "awp_rate": `${qual_matches>0 ? round((awp_count/qual_matches)*100, 0) : 0}%`,
+        "avg_ap": qual_matches>0 ? round(total_ap/qual_matches, 1) : 0,
+        "record": `${wins}-${losses}-${ties}`
     }
 }
 
